@@ -24,6 +24,15 @@ func butterflySpec(height, kbps, fps int) *videoSpec {
 	}
 }
 
+func beachSpec(height, kbps, fps int) *videoSpec {
+	return &videoSpec{
+		prefix: "beach",
+		height: height,
+		kbps:   kbps,
+		fps:    fps,
+	}
+}
+
 func (v *videoSpec) Name() string {
 	return fmt.Sprintf("resources/%s_%d_%d.h264", v.prefix, v.height, v.kbps)
 }
@@ -53,11 +62,20 @@ var (
 		butterflySpec(720, 2000, 30),
 		butterflySpec(1080, 3000, 30),
 	}
+
+	beachFiles = []*videoSpec{
+		beachSpec(180, 150, 15),
+		beachSpec(360, 400, 20),
+		beachSpec(540, 800, 25),
+		beachSpec(720, 2000, 30),
+		beachSpec(1080, 3000, 30),
+	}
 )
 
 func ButterflyLooper(height int) (*H264VideoLooper, error) {
 	var spec *videoSpec
-	for _, s := range butterflyFiles {
+	//for _, s := range butterflyFiles {
+		for _, s := range beachFiles {
 		if s.height == height {
 			spec = s
 			break
@@ -77,7 +95,8 @@ func ButterflyLooper(height int) (*H264VideoLooper, error) {
 
 func ButterflyLooperForBitrate(bitrate uint32) (*H264VideoLooper, error) {
 	var spec *videoSpec
-	for _, s := range butterflyFiles {
+	//for _, s := range butterflyFiles {
+	for _, s := range beachFiles {		
 		spec = s
 		if s.bitrate() >= bitrate {
 			break
