@@ -54,6 +54,11 @@ func main() {
 				Name:  "subscribers",
 				Usage: "number of participants that would subscribe to tracks",
 			},
+			// subscriber id range
+			&cli.StringFlag{
+				Name: "identity-range",
+				Usage: "A range of integer ids used as participants identities eg: `1-40`",
+			},
 			&cli.StringFlag{
 				Name:  "identity-prefix",
 				Usage: "identity prefix of tester participants, defaults to a random name",
@@ -127,6 +132,7 @@ func loadTest(c *cli.Context) error {
 			APISecret:      c.String("api-secret"),
 			Room:           c.String("room"),
 			IdentityPrefix: c.String("identity-prefix"),
+			IdentityRange:  c.String("identity-range"),
 			Layout:         layout,
 		},
 	}
@@ -140,8 +146,10 @@ func loadTest(c *cli.Context) error {
 		return test.RunSuite()
 	}
 
-	params.Publishers = c.Int("publishers")
 	params.Subscribers = c.Int("subscribers")
+	params.Publishers = c.Int("publishers")
+	params.IdentityRange = c.String("identity-range")
+	
 	test := loadtester.NewLoadTest(params)
 
 	return test.Run()

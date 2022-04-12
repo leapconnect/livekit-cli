@@ -1,8 +1,11 @@
 package loadtester
 
 import (
+	"errors"
 	"fmt"
+	"log"
 	"math/rand"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -49,4 +52,39 @@ func formatBitrate(bytes int64, elapsed time.Duration) string {
 	} else {
 		return fmt.Sprintf("%.1fmbps", bps/1000000)
 	}
+}
+
+func getRangeFromIdentityRange(identityRange string) ([]string, error) {
+	split := strings.Split(identityRange, "-")
+
+	if len(split) != 2 {
+		return nil, errors.New("identity-range must be <int>-<int>")
+	}
+
+	var first, last int
+	var err error
+
+	if first, err = strconv.Atoi(split[0]); err != nil {
+		return nil, errors.New("identity range must be int")
+	}
+
+	if last, err = strconv.Atoi(split[1]); err != nil {
+		return nil, errors.New("identity range must be int")
+	}
+
+	/// Inclusive range
+	total := last - first + 1
+
+	log.Printf("Generating %d identities ", total)
+
+	identities := make([]string, total)
+
+	index := 0
+
+	for i := first; i<=last; i++ {
+		identities[index] = strconv.Itoa(i)
+		index ++
+	}
+
+	return identities, nil
 }

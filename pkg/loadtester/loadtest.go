@@ -3,6 +3,7 @@ package loadtester
 import (
 	"context"
 	"fmt"
+	"log"
 	"math/rand"
 	"os"
 	"sort"
@@ -32,7 +33,7 @@ type Params struct {
 	// number of seconds to spin up per second
 	NumPerSecond float64
 	Simulcast    bool
-
+	Identities 		[]string
 	TesterParams
 }
 
@@ -41,6 +42,21 @@ func NewLoadTest(params Params) *LoadTest {
 		Params:     params,
 		trackNames: make(map[string]string),
 	}
+
+	if len(params.IdentityRange) != 0 {
+
+		log.Printf("Found identity range %s", params.IdentityRange)
+
+		var err error
+
+		l.Params.Identities, err = getRangeFromIdentityRange(params.IdentityRange)
+		l.Params.Publishers = len(l.Params.Identities)
+
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	if l.Params.NumPerSecond == 0 {
 		// sane default
 		l.Params.NumPerSecond = 5
@@ -56,6 +72,7 @@ func NewLoadTest(params Params) *LoadTest {
 }
 
 func (t *LoadTest) Run() error {
+
 	stats, err := t.run(t.Params)
 	if err != nil {
 		return err
@@ -64,13 +81,16 @@ func (t *LoadTest) Run() error {
 	// tester results
 	summaries := make(map[string]*summary)
 	names := make([]string, 0, len(stats))
+	
 	for name := range stats {
 		if strings.HasPrefix(name, "Pub") {
 			continue
 		}
 		names = append(names, name)
 	}
+
 	sort.Strings(names)
+	
 	for _, name := range names {
 		testerStats := stats[name]
 		summaries[name] = getTesterSummary(testerStats)
@@ -200,12 +220,20 @@ func (t *LoadTest) run(params Params) (map[string]*testerStats, error) {
 	if params.Room == "" {
 		params.Room = fmt.Sprintf("testroom%d", rand.Int31n(1000))
 	}
-	params.IdentityPrefix = randStringRunes(5)
+
+	if t.Params.Identities == nil || len(t.Params.Identities) == 0 {
+		params.IdentityPrefix = randStringRunes(5)
+	} else {
+		params.Identities = t.Params.Identities
+		params.Publishers = t.Params.Publishers
+	}
 
 	expectedTracks := params.Publishers
 	if params.VideoBitrate > 0 {
 		expectedTracks *= 2
 	}
+
+	log.Printf("Run test with %v identities", params.Identities)
 
 	fmt.Printf("Starting load test with %d publishers, %d subscribers, room: %s\n",
 		t.Params.Publishers, t.Params.Subscribers, t.Params.Room)
@@ -214,18 +242,27 @@ func (t *LoadTest) run(params Params) (map[string]*testerStats, error) {
 	group, _ := errgroup.WithContext(t.Params.Context)
 	startedAt := time.Now()
 	numStarted := float64(0)
-	for i := 0; i < params.Publishers+params.Subscribers; i++ {
+	
+	for i := 0; i < params.Publishers+params.Subscribers - 1; i++ {
 		testerParams := params.TesterParams
 		testerParams.sequence = i
 		testerParams.expectedTracks = expectedTracks
 		isPublisher := i < params.Publishers
+		
 		if isPublisher {
 			if params.VideoBitrate > 0 {
 				testerParams.expectedTracks -= 2
 			} else {
 				testerParams.expectedTracks--
 			}
-			testerParams.name = fmt.Sprintf("Pub %d", i)
+			
+			/// If names are present (as range of ids, use that as name)
+			if params.Identities != nil && len(params.Identities) != 0 {
+				testerParams.name = fmt.Sprintf(params.Identities[i])
+			} else {
+				testerParams.name = fmt.Sprintf("Pub %d", i)
+			}
+
 		} else {
 			testerParams.Subscribe = true
 			testerParams.name = fmt.Sprintf("Sub %d", i-params.Publishers)
@@ -235,6 +272,7 @@ func (t *LoadTest) run(params Params) (map[string]*testerStats, error) {
 		testers = append(testers, tester)
 
 		group.Go(func() error {
+
 			if err := tester.Start(); err != nil {
 				return errors.Wrapf(err, "could not connect %s", testerParams.name)
 			}
@@ -254,7 +292,8 @@ func (t *LoadTest) run(params Params) (map[string]*testerStats, error) {
 					var video string
 					var err error
 					if params.Simulcast {
-						video, err = tester.PublishSimulcastTrack("video-simulcast", params.VideoBitrate)
+						log.Println("\nVideo simulcast..")
+						video, err = tester.PublishSimulcastTrack("video-simulcast", params.VideoBitrate, i)
 					} else {
 						video, err = tester.PublishTrack("video", lksdk.TrackKindVideo, params.VideoBitrate)
 					}

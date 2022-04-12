@@ -4,6 +4,7 @@ import (
 	"embed"
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/livekit/protocol/livekit"
 )
@@ -15,9 +16,9 @@ type videoSpec struct {
 	fps    int
 }
 
-func butterflySpec(height, kbps, fps int) *videoSpec {
+func videoToPublishSpec(height, kbps, fps int) *videoSpec {
 	return &videoSpec{
-		prefix: "butterfly",
+		prefix: "video",
 		height: height,
 		kbps:   kbps,
 		fps:    fps,
@@ -34,7 +35,12 @@ func beachSpec(height, kbps, fps int) *videoSpec {
 }
 
 func (v *videoSpec) Name() string {
-	return fmt.Sprintf("resources/%s_%d_%d.h264", v.prefix, v.height, v.kbps)
+	// pwd, _ := os.Getwd()
+	// pwd = strings.TrimSpace(pwd)
+	height := strconv.Itoa(v.height)
+	kbps := strconv.Itoa(v.kbps)
+	fps := strconv.Itoa(v.fps)
+	return fmt.Sprintf("pkg/provider/randomVideo/%s_%s_%s_%s.h264" , v.prefix, height, kbps, fps)
 }
 
 func (v *videoSpec) ToVideoLayer(quality livekit.VideoQuality) *livekit.VideoLayer {
@@ -55,12 +61,12 @@ var (
 	res embed.FS
 
 	// map of key => bitrate
-	butterflyFiles = []*videoSpec{
-		butterflySpec(180, 150, 15),
-		butterflySpec(360, 400, 20),
-		butterflySpec(540, 800, 25),
-		butterflySpec(720, 2000, 30),
-		butterflySpec(1080, 3000, 30),
+	videosToPublish = []*videoSpec{
+		videoToPublishSpec(180, 150, 15),
+		videoToPublishSpec(360, 400, 20),
+		videoToPublishSpec(540, 800, 25),
+		videoToPublishSpec(720, 2000, 30),
+		videoToPublishSpec(1080, 3000, 30),
 	}
 
 	beachFiles = []*videoSpec{
@@ -70,24 +76,29 @@ var (
 		beachSpec(720, 2000, 30),
 		beachSpec(1080, 3000, 30),
 	}
+
 )
 
 func ButterflyLooper(height int) (*H264VideoLooper, error) {
 	var spec *videoSpec
-	//for _, s := range butterflyFiles {
-		for _, s := range beachFiles {
+
+	for _, s := range videosToPublish {
 		if s.height == height {
 			spec = s
 			break
 		}
 	}
+
 	if spec == nil {
 		return nil, os.ErrNotExist
 	}
+
 	f, err := res.Open(spec.Name())
+	
 	if err != nil {
 		return nil, err
 	}
+
 	defer f.Close()
 
 	return NewH264VideoLooper(f, spec)
