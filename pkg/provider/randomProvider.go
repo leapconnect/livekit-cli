@@ -18,10 +18,16 @@ func getVideoSpecsFromRandomVideo() ([]videoSpec, error) {
 	
 	log.Printf("Currently working directory: %s", pwd )
 	
-	files, err := ioutil.ReadDir("pkg/provider/randomVideo/")
+	_files, err := ioutil.ReadDir("pkg/provider/randomVideo/")
 
-	for _, f := range(files) {
-		log.Println(f.Name())
+	var files []fs.FileInfo
+
+	for _, f := range(_files) {
+		n := f.Name()
+		if (n != ".gitkeep") {
+			log.Println(n)
+			files = append(files, f)
+		}
 	}
 
 	if err != nil {
@@ -33,6 +39,10 @@ func getVideoSpecsFromRandomVideo() ([]videoSpec, error) {
 
 	for i, f := range(files) {
 		n := f.Name()
+
+		if n == ".gitkeep"{
+			continue
+		}
 
 		// Name for random videos is video<intsequence>_<height>_<kbps>_<fps>.h264
 		split := strings.Split(n, "_")
