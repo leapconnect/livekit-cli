@@ -14,7 +14,8 @@ def main(params: Params):
 
     for (dirpath, dirnames, filenames) in walk(f"{pwd}/video"):
         for file_name in filenames:
-            v = mp.VideoFileClip(f"{pwd}/video/{file_name}")
+            if (file_name != '.gitkeep'):
+                v = mp.VideoFileClip(f"{pwd}/video/{file_name}")
             videos.append(v)
 
     index = params.get('index')
@@ -36,7 +37,7 @@ def main(params: Params):
 
         video.set_fps(video.fps)
         video.resize((new_width, height))
-
+        video.loop(duration=video.duration)
         video.write_videofile(filename=video_name, fps=fps, codec="libx264", audio=False)
 
         index += 1
