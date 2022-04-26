@@ -71,7 +71,7 @@ func getVideoSpecsFromRandomVideo() ([]videoSpec, error) {
 	return videoSpecs, nil
 }
 
-
+var index = 0
 
 func GetVideoLooperForUserIdentity() (*H264VideoLooper, error){
 	var specs []videoSpec
@@ -85,17 +85,34 @@ func GetVideoLooperForUserIdentity() (*H264VideoLooper, error){
 
 	var f fs.File
 
-	s := rand.NewSource(time.Now().UnixNano())
-	r := rand.New(s)
+	log.Printf("%d -> usedVideos %d -> totalVideo", index + 1, totalVideo)
 
-	i := r.Int31n(int32(totalVideo - 1))
+	if index + 1 > totalVideo {	
 
-	spec := &specs[i]
+		log.Println("Not enough video, randomly use already used videos")
+		
+		s := rand.NewSource(time.Now().UnixNano())
+		r := rand.New(s)
+
+		i := r.Int31n(int32(totalVideo - 1))
+
+		specRandom := &specs[i]
+
+		if f, err = os.Open(specRandom.Name()); err != nil {
+			return nil, err
+		}
+		
+		return NewH264VideoLooper(f, specRandom)
+	}
+
+	spec := &specs[index]
 
 	if f, err = os.Open(spec.Name()); err != nil {
 		return nil, err
 	}
-	
+
+	index ++
+
 	return NewH264VideoLooper(f, spec)
 }
 
