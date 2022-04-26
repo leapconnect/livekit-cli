@@ -38,7 +38,7 @@ def main(params: Params):
         video.set_fps(video.fps)
         video.resize((new_width, height))
         video.loop(duration=video.duration)
-        video.write_videofile(filename=video_name, fps=fps, codec="libx264", audio=False)
+        video.write_videofile(filename=video_name, fps=float(fps), codec="libx264", audio=False)
 
         index += 1
 
