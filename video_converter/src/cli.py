@@ -1,5 +1,6 @@
 from typing import Callable, TypedDict
 from os import getcwd
+from typing import Union
 
 class Params(TypedDict):
     out: str
@@ -10,12 +11,12 @@ class Params(TypedDict):
     fps: int
 
 class Cli:
-    out: str | None
-    prefix: str | None
-    index: int | None
-    height: int | None
-    kbps: int | None
-    fps: int | None
+    out: Union[str, None]
+    prefix: Union[str, None]
+    index: Union[int, None]
+    height: Union[int, None]
+    kbps: Union[int, None]
+    fps: Union[int, None]
 
     def __init__(self):
         self.out: str = f"{getcwd()}/dest"
